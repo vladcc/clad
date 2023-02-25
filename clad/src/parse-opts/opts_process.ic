@@ -1,0 +1,202 @@
+// <opts_process>
+opts_table the_tbl;
+opts_entry all_entries[] = {
+	{
+		.names = {
+			.long_name = disasm_opt_long,
+			.short_name = disasm_opt_short
+		},
+		.handler = {
+			.handler = handle_disasm,
+			.context = (void *)ctx,
+		},
+		.print_help = help_disasm,
+		.takes_arg = false,
+	},
+	{
+		.names = {
+			.long_name = disasm_opt_opt_long,
+			.short_name = disasm_opt_opt_short
+		},
+		.handler = {
+			.handler = handle_disasm_opt,
+			.context = (void *)ctx,
+		},
+		.print_help = help_disasm_opt,
+		.takes_arg = false,
+	},
+	{
+		.names = {
+			.long_name = disasm_examples_opt_long,
+			.short_name = disasm_examples_opt_short
+		},
+		.handler = {
+			.handler = handle_disasm_examples,
+			.context = (void *)ctx,
+		},
+		.print_help = help_disasm_examples,
+		.takes_arg = false,
+	},
+	{
+		.names = {
+			.long_name = asm_opt_long,
+			.short_name = asm_opt_short
+		},
+		.handler = {
+			.handler = handle_asm,
+			.context = (void *)ctx,
+		},
+		.print_help = help_asm,
+		.takes_arg = false,
+	},
+	{
+		.names = {
+			.long_name = asm_opt_opt_long,
+			.short_name = asm_opt_opt_short
+		},
+		.handler = {
+			.handler = handle_asm_opt,
+			.context = (void *)ctx,
+		},
+		.print_help = help_asm_opt,
+		.takes_arg = false,
+	},
+	{
+		.names = {
+			.long_name = asm_examples_opt_long,
+			.short_name = asm_examples_opt_short
+		},
+		.handler = {
+			.handler = handle_asm_examples,
+			.context = (void *)ctx,
+		},
+		.print_help = help_asm_examples,
+		.takes_arg = false,
+	},
+	{
+		.names = {
+			.long_name = arch_opt_long,
+			.short_name = arch_opt_short
+		},
+		.handler = {
+			.handler = handle_arch,
+			.context = (void *)ctx,
+		},
+		.print_help = help_arch,
+		.takes_arg = true,
+	},
+	{
+		.names = {
+			.long_name = mode_opt_long,
+			.short_name = mode_opt_short
+		},
+		.handler = {
+			.handler = handle_mode,
+			.context = (void *)ctx,
+		},
+		.print_help = help_mode,
+		.takes_arg = true,
+	},
+	{
+		.names = {
+			.long_name = syntax_opt_long,
+			.short_name = syntax_opt_short
+		},
+		.handler = {
+			.handler = handle_syntax,
+			.context = (void *)ctx,
+		},
+		.print_help = help_syntax,
+		.takes_arg = true,
+	},
+	{
+		.names = {
+			.long_name = file_opt_long,
+			.short_name = file_opt_short
+		},
+		.handler = {
+			.handler = handle_file,
+			.context = (void *)ctx,
+		},
+		.print_help = help_file,
+		.takes_arg = true,
+	},
+	{
+		.names = {
+			.long_name = string_opt_long,
+			.short_name = string_opt_short
+		},
+		.handler = {
+			.handler = handle_string,
+			.context = (void *)ctx,
+		},
+		.print_help = help_string,
+		.takes_arg = true,
+	},
+	{
+		.names = {
+			.long_name = addr_opt_long,
+			.short_name = addr_opt_short
+		},
+		.handler = {
+			.handler = handle_addr,
+			.context = (void *)ctx,
+		},
+		.print_help = help_addr,
+		.takes_arg = true,
+	},
+	{
+		.names = {
+			.long_name = limits_opt_long,
+			.short_name = limits_opt_short
+		},
+		.handler = {
+			.handler = handle_limits,
+			.context = (void *)ctx,
+		},
+		.print_help = help_limits,
+		.takes_arg = false,
+	},
+	{
+		.names = {
+			.long_name = version_opt_long,
+			.short_name = version_opt_short
+		},
+		.handler = {
+			.handler = handle_version,
+			.context = (void *)ctx,
+		},
+		.print_help = help_version,
+		.takes_arg = false,
+	},
+	{
+		.names = {
+			.long_name = help_opt_long,
+			.short_name = help_opt_short
+		},
+		.handler = {
+			.handler = handle_help,
+			.context = (void *)(&the_tbl),
+		},
+		.print_help = help_help,
+		.takes_arg = false,
+	},
+};
+
+the_tbl.tbl = all_entries;
+the_tbl.length = sizeof(all_entries)/sizeof(*all_entries);
+
+opts_parse_data parse_data = {
+	.the_tbl = &the_tbl,
+	.on_unbound = {
+		.handler = on_unbound_arg,
+		.context = (void *)ctx,
+	},
+	.on_error = {
+		.handler = on_error,
+		.context = (void *)ctx,
+	}
+};
+
+opts_parse(argc-1, argv+1, &parse_data);
+// </opts_process>

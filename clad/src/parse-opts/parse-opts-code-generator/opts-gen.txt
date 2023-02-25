@@ -1,0 +1,285 @@
+context_arg_type program_opts
+context_var_name ctx
+
+unbound_arg_code
+	save_string(arg, ctx);
+end_code
+
+on_error_code
+	switch (err_code)
+	{
+		case OPTS_UNKOWN_OPT_ERR:
+			err_quit("option '%s' unknown", err_opt);
+			return;
+		break;
+		case OPTS_ARG_REQ_ERR:
+			err_quit("option '%s' requires an argument", err_opt);
+		break;
+		case OPTS_NO_ARG_REQ_ERR:
+			err_quit("option '%s' does not take arguments", err_opt);
+		break;
+		default:
+		break;
+	}
+end_code
+
+long_name  disasm
+short_name d
+takes_args false
+handler_code
+	prog_options * options = (prog_options *)ctx;
+	options->disassemble = true;
+	options->assemble = false;
+end_code
+help_code
+	printf(" %s, %-17s - set disassembly mode\n", short_name, long_name);
+end_code
+end
+
+long_name  disasm-opt
+short_name \0
+takes_args false
+handler_code
+	disasm_print_options();
+	exit(EXIT_SUCCESS);
+end_code
+help_code
+	printf("     %-17s - print all Capstone disassembly options\n", long_name);
+end_code
+end
+
+long_name  disasm-examples
+short_name \0
+takes_args false
+handler_code
+puts("$ clad '48 81 ec 88 03 00 00'");
+puts("0x0000 | 48 81 ec 88 03 00 00 | sub rsp, 0x388");
+puts("");
+puts("$ clad '48 !81 ec 88 03 00 00'");
+puts("0x0000 | 48 ec | in al, dx");
+puts("0x0002 | 88 03 | mov byte ptr [rbx], al");
+puts("0x0004 | 00 00 | add byte ptr [rax], al");
+puts("");
+puts("$ clad -S att '48 !81 ec 88 03 00 00'");
+puts("0x0000 | 48 ec | inb %dx, %al");
+puts("0x0002 | 88 03 | movb %al, (%rbx)");
+puts("0x0004 | 00 00 | addb %al, (%rax)");
+puts("");
+puts("$ clad -S att -s '48 !81 ec 88 03 00 00' --addr 4000");
+puts("0x4000 | 48 ec | inb %dx, %al");
+puts("0x4002 | 88 03 | movb %al, (%rbx)");
+puts("0x4004 | 00 00 | addb %al, (%rax)");
+puts("");
+puts("$ clad '48 !81 ec 88 03 00 00' --addr=0x4000");
+puts("0x4000 | 48 ec | in al, dx");
+puts("0x4002 | 88 03 | mov byte ptr [rbx], al");
+puts("0x4004 | 00 00 | add byte ptr [rax], al");
+puts("");
+puts("$ clad '0xcc 90h' '55 48 89 e5 48 81 ec 88 03 00 00' 'c3' | column -s'|' -t");
+puts("0x0000    cc                      int3 ");
+puts("0x0001    90                      nop ");
+puts("0x0002    55                      push rbp");
+puts("0x0003    48 89 e5                mov rbp, rsp");
+puts("0x0006    48 81 ec 88 03 00 00    sub rsp, 0x388");
+puts("0x000d    c3                      ret ");
+puts("");
+puts("$ clad '0xcc 90h' '55 48 89 e5 48 81 !ec 88 03 00 00' 'c3'");
+puts("0x0000 | cc | int3 ");
+puts("0x0001 | 90 | nop ");
+puts("0x0002 | 55 | push rbp");
+puts("0x0003 | 48 89 e5 | mov rbp, rsp");
+puts("clad: error: disasm: invalid instruction at address 0x0006 in string 2");
+puts("55 48 89 e5 48 81 !ec 88 03 00 00");
+puts("            ^");
+end_code
+help_code
+	printf("     %-17s - print disassembly examples\n", long_name);
+end_code
+end
+
+long_name  asm
+short_name a
+takes_args false
+handler_code
+	prog_options * options = (prog_options *)ctx;
+	options->disassemble = false;
+	options->assemble = true;
+end_code
+help_code
+	printf(" %s, %-17s - set assembly mode\n", short_name, long_name);
+end_code
+end
+
+long_name  asm-opt
+short_name \0
+takes_args false
+handler_code
+	asm_print_options();
+	exit(EXIT_SUCCESS);
+end_code
+help_code
+	printf("     %-17s - print all Keystone disassembly options\n", long_name);
+end_code
+end
+
+long_name  asm-examples
+short_name \0
+takes_args false
+handler_code
+puts("$ clad -a nop -f <(echo ret) -s int3 --addr=40000");
+puts("0x40000 | 90 | nop");
+puts("0x40001 | c3 | ret");
+puts("0x40002 | cc | int3");
+puts("");
+puts("$ clad -a 'push rbp; mov rbp, rsp; mov eax, 0x0f00; pop rbp; ret'");
+puts("0x0000 | 55 | push rbp");
+puts("0x0001 | 48 89 e5 | mov rbp, rsp");
+puts("0x0004 | b8 00 0f 00 00 | mov eax, 0x0f00");
+puts("0x0009 | 5d | pop rbp");
+puts("0x000a | c3 | ret");
+puts("");
+puts("$ clad -a 'push rbp; mov rbp, rsp; mov eax, 0x0f00; pop rbp; ret' | column -s '|' -t");
+puts("0x0000    55                push rbp");
+puts("0x0001    48 89 e5          mov rbp, rsp");
+puts("0x0004    b8 00 0f 00 00    mov eax, 0x0f00");
+puts("0x0009    5d                pop rbp");
+puts("0x000a    c3                ret");
+puts("");
+puts("$ clad -a 'push rbp; mov rbp, rsp; move eax, 0x0f00; pop rbp; ret'");
+puts("0x0000 | 55 | push rbp");
+puts("0x0001 | 48 89 e5 | mov rbp, rsp");
+puts("clad: error: asm: bad instruction syntax");
+puts("string 1: 'push rbp; mov rbp, rsp; move eax, 0x0f00; pop rbp; ret'");
+puts("instruction 3: 'move eax, 0x0f00'");
+puts("clad: error: Keystone: Invalid mnemonic (KS_ERR_ASM_MNEMONICFAIL)");
+end_code
+help_code
+	printf("     %-17s - print disassembly examples\n", long_name);
+end_code
+end
+
+long_name  arch
+short_name A
+takes_args true
+handler_code
+	prog_options * options = (prog_options *)ctx;
+	options->arch = opt_arg;
+end_code
+help_code
+	printf(" %s, %-17s - set architecture\n", short_name, long_name);
+end_code
+end
+
+long_name  mode
+short_name M
+takes_args true
+handler_code
+	prog_options * options = (prog_options *)ctx;
+	options->mode = opt_arg;
+end_code
+help_code
+	printf(" %s, %-17s - set mode\n", short_name, long_name);
+end_code
+end
+
+long_name  syntax
+short_name S
+takes_args true
+handler_code
+	prog_options * options = (prog_options *)ctx;
+	options->syntax = opt_arg;
+end_code
+help_code
+	printf(" %s, %-17s - set syntax\n", short_name, long_name);
+end_code
+end
+
+long_name  file
+short_name f
+takes_args true
+handler_code
+	save_file(opt_arg, ctx);
+end_code
+help_code
+	printf(" %s, %-17s - specify a file for processing\n",
+		short_name, long_name);
+end_code
+end
+
+long_name  string
+short_name s
+takes_args true
+handler_code
+	save_string(opt_arg, ctx);
+end_code
+help_code
+	printf(" %s, %-17s - specify a string for processing\n",
+		short_name, long_name);
+end_code
+end
+
+long_name  addr
+short_name x
+takes_args true
+handler_code
+	prog_options * options = (prog_options *)ctx;
+	if (sscanf(opt_arg, "%jx", &(options->addr)) != 1)
+		err_quit("option '%s': '%s' not a hex number", opt, opt_arg);
+end_code
+help_code
+	printf(" %s, %-17s - specify a start address\n", short_name, long_name);
+end_code
+end
+
+long_name  limits
+short_name \0
+takes_args false
+handler_code
+	print_static_limits_quit();
+end_code
+help_code
+	printf("     %-17s - print static limits and exit\n", long_name);
+end_code
+end
+
+long_name  version
+short_name \0
+takes_args false
+handler_code
+	print_version_quit();
+end_code
+help_code
+	printf("     %-17s - print version and exit\n", long_name);
+end_code
+end
+
+long_name  help
+short_name h
+takes_args false
+handler_code
+printf("%s -- command line assembler/disassembler\n", prog_name);
+puts("");
+puts("Uses the Keystone and Capstone libraries for assembly and disassembly, hence it");
+puts("supports all architectures, modes, and syntaxes these libraries support. Note");
+puts("that this also depends on the compile time options for the libraries. If");
+puts("arm wasn't compiled in, for example, it will not be available for use.");
+puts("");
+puts("Input is read as strings and output is written as strings. For assembly the");
+puts("input is assembly language. For disassembly it's any string containing hex");
+puts("digits. When a string is given for disassembly, all non hex digit characters,");
+puts("'0x' sequences, and any sequence of non whitespace characters starting with a");
+puts("'!' are ignored. See examples for details. Multiple strings and files may be");
+puts("given and will be processed in order. A count of all processed strings is kept");
+puts("but no effort is made to remember where any particular string came from.");
+puts("");
+puts("If no assembly/disassembly options are given, processing defaults to");
+puts("disassembly for x86_64, Intel syntax. When these are given, they may repeat");
+puts("and the last one seen is applied.");
+puts("");
+puts("Options:");
+opts_print_help((opts_table *)ctx);
+end_code
+help_code
+	printf(" %s, %-17s - print this screen\n", short_name, long_name);
+end_code
+end

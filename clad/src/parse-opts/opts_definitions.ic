@@ -1,0 +1,320 @@
+// <opts_definitions>
+
+// --disasm|-d
+static const char disasm_opt_short = 'd';
+static const char disasm_opt_long[] = "disasm";
+static void handle_disasm(const char * opt, char * opt_arg, void * ctx)
+{
+	prog_options * options = (prog_options *)ctx;
+	options->disassemble = true;
+	options->assemble = false;
+}
+
+static void help_disasm(const char * short_name, const char * long_name)
+{
+	printf(" %s, %-17s - set disassembly mode\n", short_name, long_name);
+}
+
+// --disasm-opt|-\0
+static const char disasm_opt_opt_short = '\0';
+static const char disasm_opt_opt_long[] = "disasm-opt";
+static void handle_disasm_opt(const char * opt, char * opt_arg, void * ctx)
+{
+	disasm_print_options();
+	exit(EXIT_SUCCESS);
+}
+
+static void help_disasm_opt(const char * short_name, const char * long_name)
+{
+	printf("     %-17s - print all Capstone disassembly options\n", long_name);
+}
+
+// --disasm-examples|-\0
+static const char disasm_examples_opt_short = '\0';
+static const char disasm_examples_opt_long[] = "disasm-examples";
+static void handle_disasm_examples(const char * opt, char * opt_arg, void * ctx)
+{
+puts("$ clad '48 81 ec 88 03 00 00'");
+puts("0x0000 | 48 81 ec 88 03 00 00 | sub rsp, 0x388");
+puts("");
+puts("$ clad '48 !81 ec 88 03 00 00'");
+puts("0x0000 | 48 ec | in al, dx");
+puts("0x0002 | 88 03 | mov byte ptr [rbx], al");
+puts("0x0004 | 00 00 | add byte ptr [rax], al");
+puts("");
+puts("$ clad -S att '48 !81 ec 88 03 00 00'");
+puts("0x0000 | 48 ec | inb %dx, %al");
+puts("0x0002 | 88 03 | movb %al, (%rbx)");
+puts("0x0004 | 00 00 | addb %al, (%rax)");
+puts("");
+puts("$ clad -S att -s '48 !81 ec 88 03 00 00' --addr 4000");
+puts("0x4000 | 48 ec | inb %dx, %al");
+puts("0x4002 | 88 03 | movb %al, (%rbx)");
+puts("0x4004 | 00 00 | addb %al, (%rax)");
+puts("");
+puts("$ clad '48 !81 ec 88 03 00 00' --addr=0x4000");
+puts("0x4000 | 48 ec | in al, dx");
+puts("0x4002 | 88 03 | mov byte ptr [rbx], al");
+puts("0x4004 | 00 00 | add byte ptr [rax], al");
+puts("");
+puts("$ clad '0xcc 90h' '55 48 89 e5 48 81 ec 88 03 00 00' 'c3' | column -s'|' -t");
+puts("0x0000    cc                      int3 ");
+puts("0x0001    90                      nop ");
+puts("0x0002    55                      push rbp");
+puts("0x0003    48 89 e5                mov rbp, rsp");
+puts("0x0006    48 81 ec 88 03 00 00    sub rsp, 0x388");
+puts("0x000d    c3                      ret ");
+puts("");
+puts("$ clad '0xcc 90h' '55 48 89 e5 48 81 !ec 88 03 00 00' 'c3'");
+puts("0x0000 | cc | int3 ");
+puts("0x0001 | 90 | nop ");
+puts("0x0002 | 55 | push rbp");
+puts("0x0003 | 48 89 e5 | mov rbp, rsp");
+puts("clad: error: disasm: invalid instruction at address 0x0006 in string 2");
+puts("55 48 89 e5 48 81 !ec 88 03 00 00");
+puts("            ^");
+}
+
+static void help_disasm_examples(const char * short_name, const char * long_name)
+{
+	printf("     %-17s - print disassembly examples\n", long_name);
+}
+
+// --asm|-a
+static const char asm_opt_short = 'a';
+static const char asm_opt_long[] = "asm";
+static void handle_asm(const char * opt, char * opt_arg, void * ctx)
+{
+	prog_options * options = (prog_options *)ctx;
+	options->disassemble = false;
+	options->assemble = true;
+}
+
+static void help_asm(const char * short_name, const char * long_name)
+{
+	printf(" %s, %-17s - set assembly mode\n", short_name, long_name);
+}
+
+// --asm-opt|-\0
+static const char asm_opt_opt_short = '\0';
+static const char asm_opt_opt_long[] = "asm-opt";
+static void handle_asm_opt(const char * opt, char * opt_arg, void * ctx)
+{
+	asm_print_options();
+	exit(EXIT_SUCCESS);
+}
+
+static void help_asm_opt(const char * short_name, const char * long_name)
+{
+	printf("     %-17s - print all Keystone disassembly options\n", long_name);
+}
+
+// --asm-examples|-\0
+static const char asm_examples_opt_short = '\0';
+static const char asm_examples_opt_long[] = "asm-examples";
+static void handle_asm_examples(const char * opt, char * opt_arg, void * ctx)
+{
+puts("$ clad -a nop -f <(echo ret) -s int3 --addr=40000");
+puts("0x40000 | 90 | nop");
+puts("0x40001 | c3 | ret");
+puts("0x40002 | cc | int3");
+puts("");
+puts("$ clad -a 'push rbp; mov rbp, rsp; mov eax, 0x0f00; pop rbp; ret'");
+puts("0x0000 | 55 | push rbp");
+puts("0x0001 | 48 89 e5 | mov rbp, rsp");
+puts("0x0004 | b8 00 0f 00 00 | mov eax, 0x0f00");
+puts("0x0009 | 5d | pop rbp");
+puts("0x000a | c3 | ret");
+puts("");
+puts("$ clad -a 'push rbp; mov rbp, rsp; mov eax, 0x0f00; pop rbp; ret' | column -s '|' -t");
+puts("0x0000    55                push rbp");
+puts("0x0001    48 89 e5          mov rbp, rsp");
+puts("0x0004    b8 00 0f 00 00    mov eax, 0x0f00");
+puts("0x0009    5d                pop rbp");
+puts("0x000a    c3                ret");
+puts("");
+puts("$ clad -a 'push rbp; mov rbp, rsp; move eax, 0x0f00; pop rbp; ret'");
+puts("0x0000 | 55 | push rbp");
+puts("0x0001 | 48 89 e5 | mov rbp, rsp");
+puts("clad: error: asm: bad instruction syntax");
+puts("string 1: 'push rbp; mov rbp, rsp; move eax, 0x0f00; pop rbp; ret'");
+puts("instruction 3: 'move eax, 0x0f00'");
+puts("clad: error: Keystone: Invalid mnemonic (KS_ERR_ASM_MNEMONICFAIL)");
+}
+
+static void help_asm_examples(const char * short_name, const char * long_name)
+{
+	printf("     %-17s - print disassembly examples\n", long_name);
+}
+
+// --arch|-A
+static const char arch_opt_short = 'A';
+static const char arch_opt_long[] = "arch";
+static void handle_arch(const char * opt, char * opt_arg, void * ctx)
+{
+	prog_options * options = (prog_options *)ctx;
+	options->arch = opt_arg;
+}
+
+static void help_arch(const char * short_name, const char * long_name)
+{
+	printf(" %s, %-17s - set architecture\n", short_name, long_name);
+}
+
+// --mode|-M
+static const char mode_opt_short = 'M';
+static const char mode_opt_long[] = "mode";
+static void handle_mode(const char * opt, char * opt_arg, void * ctx)
+{
+	prog_options * options = (prog_options *)ctx;
+	options->mode = opt_arg;
+}
+
+static void help_mode(const char * short_name, const char * long_name)
+{
+	printf(" %s, %-17s - set mode\n", short_name, long_name);
+}
+
+// --syntax|-S
+static const char syntax_opt_short = 'S';
+static const char syntax_opt_long[] = "syntax";
+static void handle_syntax(const char * opt, char * opt_arg, void * ctx)
+{
+	prog_options * options = (prog_options *)ctx;
+	options->syntax = opt_arg;
+}
+
+static void help_syntax(const char * short_name, const char * long_name)
+{
+	printf(" %s, %-17s - set syntax\n", short_name, long_name);
+}
+
+// --file|-f
+static const char file_opt_short = 'f';
+static const char file_opt_long[] = "file";
+static void handle_file(const char * opt, char * opt_arg, void * ctx)
+{
+	save_file(opt_arg, ctx);
+}
+
+static void help_file(const char * short_name, const char * long_name)
+{
+	printf(" %s, %-17s - specify a file for processing\n",
+		short_name, long_name);
+}
+
+// --string|-s
+static const char string_opt_short = 's';
+static const char string_opt_long[] = "string";
+static void handle_string(const char * opt, char * opt_arg, void * ctx)
+{
+	save_string(opt_arg, ctx);
+}
+
+static void help_string(const char * short_name, const char * long_name)
+{
+	printf(" %s, %-17s - specify a string for processing\n",
+		short_name, long_name);
+}
+
+// --addr|-x
+static const char addr_opt_short = 'x';
+static const char addr_opt_long[] = "addr";
+static void handle_addr(const char * opt, char * opt_arg, void * ctx)
+{
+	prog_options * options = (prog_options *)ctx;
+	if (sscanf(opt_arg, "%jx", &(options->addr)) != 1)
+		err_quit("option '%s': '%s' not a hex number", opt, opt_arg);
+}
+
+static void help_addr(const char * short_name, const char * long_name)
+{
+	printf(" %s, %-17s - specify a start address\n", short_name, long_name);
+}
+
+// --limits|-\0
+static const char limits_opt_short = '\0';
+static const char limits_opt_long[] = "limits";
+static void handle_limits(const char * opt, char * opt_arg, void * ctx)
+{
+	print_static_limits_quit();
+}
+
+static void help_limits(const char * short_name, const char * long_name)
+{
+	printf("     %-17s - print static limits and exit\n", long_name);
+}
+
+// --version|-\0
+static const char version_opt_short = '\0';
+static const char version_opt_long[] = "version";
+static void handle_version(const char * opt, char * opt_arg, void * ctx)
+{
+	print_version_quit();
+}
+
+static void help_version(const char * short_name, const char * long_name)
+{
+	printf("     %-17s - print version and exit\n", long_name);
+}
+
+// --help|-h
+static const char help_opt_short = 'h';
+static const char help_opt_long[] = "help";
+static void handle_help(const char * opt, char * opt_arg, void * ctx)
+{
+printf("%s -- command line assembler/disassembler\n", prog_name);
+puts("");
+puts("Uses the Keystone and Capstone libraries for assembly and disassembly, hence it");
+puts("supports all architectures, modes, and syntaxes these libraries support. Note");
+puts("that this also depends on the compile time options for the libraries. If");
+puts("arm wasn't compiled in, for example, it will not be available for use.");
+puts("");
+puts("Input is read as strings and output is written as strings. For assembly the");
+puts("input is assembly language. For disassembly it's any string containing hex");
+puts("digits. When a string is given for disassembly, all non hex digit characters,");
+puts("'0x' sequences, and any sequence of non whitespace characters starting with a");
+puts("'!' are ignored. See examples for details. Multiple strings and files may be");
+puts("given and will be processed in order. A count of all processed strings is kept");
+puts("but no effort is made to remember where any particular string came from.");
+puts("");
+puts("If no assembly/disassembly options are given, processing defaults to");
+puts("disassembly for x86_64, Intel syntax. When these are given, they may repeat");
+puts("and the last one seen is applied.");
+puts("");
+puts("Options:");
+opts_print_help((opts_table *)ctx);
+}
+
+static void help_help(const char * short_name, const char * long_name)
+{
+	printf(" %s, %-17s - print this screen\n", short_name, long_name);
+}
+
+// on_unbound_arg
+static void on_unbound_arg(const char * arg, void * ctx)
+{
+	save_string(arg, ctx);
+}
+
+// on_error
+static void on_error(opts_err_code err_code, const char * err_opt, void * ctx)
+{
+	switch (err_code)
+	{
+		case OPTS_UNKOWN_OPT_ERR:
+			err_quit("option '%s' unknown", err_opt);
+			return;
+		break;
+		case OPTS_ARG_REQ_ERR:
+			err_quit("option '%s' requires an argument", err_opt);
+		break;
+		case OPTS_NO_ARG_REQ_ERR:
+			err_quit("option '%s' does not take arguments", err_opt);
+		break;
+		default:
+		break;
+	}
+}
+
+// </opts_definitions>

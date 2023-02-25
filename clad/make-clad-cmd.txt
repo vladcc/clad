@@ -1,0 +1,1 @@
+make clad LIB_CAPSTONE_INCL_DIR='~/repos/capstone/include' LIB_CAPSTONE_A='~/repos/capstone/libcapstone.a' LIB_KEYSTONE_INCL_DIR='~/repos/keystone/include' LIB_KEYSTONE_A='~/repos/keystone/build/llvm/lib/libkeystone.a'
