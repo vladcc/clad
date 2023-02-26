@@ -6,6 +6,7 @@ Clad allows you to assemble/disassemble code from and to strings. This allows
 you to easily explore the instruction sets of various CPU architectures, get hex
 code for you reverse engineering needs, and more.
 
+## Examples
 ### Simple function
 For example, this is how a function which returns the constant 0x0f00 looks
 like on amd64:
@@ -127,8 +128,6 @@ $ echo {0..255} | tr ' ' '\n' | xargs -L1 printf "%02x\n" | xargs -L 1 clad -A x
 0x0000 | fc | cld 
 0x0000 | fd | std 
 ```
-
-### Single byte instructions amd64 x86 intersection
 This is how you can see which single byte instructions are common to x86 and
 amd64, and how many there are:
 ```
@@ -167,6 +166,44 @@ $ comm -12 <(echo {0..255} | tr ' ' '\n' | xargs -L1 printf "%02x\n" | xargs -L 
     32  0x0000 | fd | std 
 ```
 
+### All one byte + four byte argument instructions
+Instructions like
+```
+jmp <dword>, call <dword>, push <dword>
+```
+etc. in amd64:
+```
+$ seq 0 255 | awk '{print sprintf("\"%02x 00 00 00 00\"", $0)}' | xargs -L1 clad 2>&1 | grep '^0x0000' | awk -F ' \\| ' '{a=$2; if (4 == gsub(" ", " ", a)) print $0}' | cat -n
+     1  0x0000 | 05 00 00 00 00 | add eax, 0
+     2  0x0000 | 0d 00 00 00 00 | or eax, 0
+     3  0x0000 | 15 00 00 00 00 | adc eax, 0
+     4  0x0000 | 1d 00 00 00 00 | sbb eax, 0
+     5  0x0000 | 25 00 00 00 00 | and eax, 0
+     6  0x0000 | 2d 00 00 00 00 | sub eax, 0
+     7  0x0000 | 35 00 00 00 00 | xor eax, 0
+     8  0x0000 | 3d 00 00 00 00 | cmp eax, 0
+     9  0x0000 | 68 00 00 00 00 | push 0
+    10  0x0000 | a9 00 00 00 00 | test eax, 0
+    11  0x0000 | b8 00 00 00 00 | mov eax, 0
+    12  0x0000 | b9 00 00 00 00 | mov ecx, 0
+    13  0x0000 | ba 00 00 00 00 | mov edx, 0
+    14  0x0000 | bb 00 00 00 00 | mov ebx, 0
+    15  0x0000 | bc 00 00 00 00 | mov esp, 0
+    16  0x0000 | bd 00 00 00 00 | mov ebp, 0
+    17  0x0000 | be 00 00 00 00 | mov esi, 0
+    18  0x0000 | bf 00 00 00 00 | mov edi, 0
+    19  0x0000 | e8 00 00 00 00 | call 5
+    20  0x0000 | e9 00 00 00 00 | jmp 5
+```
+All which are in 32 bit x86 but not in 64 bit:
+```
+$ comm -13 <(seq 0 255 | awk '{print sprintf("\"%02x 00 00 00 00\"", $0)}' | xargs -L1 clad -A x86 -M 64 2>&1 | grep '^0x0000' | awk -F ' \\| ' '{a=$2; if (4 == gsub(" ", " ", a)) print $0}' | sort) <(seq 0 255 | awk '{print sprintf("\"%02x 00 00 00 00\"", $0)}' | xargs -L1 clad -A x86 -M 32 2>&1 | grep '^0x0000' | awk -F ' \\| ' '{a=$2; if (4 == gsub(" ", " ", a)) print $0}' | sort) | cat -n
+     1  0x0000 | a0 00 00 00 00 | mov al, byte ptr [0]
+     2  0x0000 | a1 00 00 00 00 | mov eax, dword ptr [0]
+     3  0x0000 | a2 00 00 00 00 | mov byte ptr [0], al
+     4  0x0000 | a3 00 00 00 00 | mov dword ptr [0], eax
+```
+
 ## How it works
 Clad uses the Capstone engine for disassembly and the Keystone engine for
 assembly, which on their hand support numerous architectures, modes, and
@@ -175,10 +212,10 @@ code for these libraries, or any library binaries.
 
 ## How to build
 Clad requires the user to build static Keystone and Capstone libraries and point
-the compiler to them during compilation. Capstone and Keystone can be found here
-https://github.com/capstone-engine
-and here
-https://github.com/keystone-engine
+the compiler to them during compilation. Capstone and Keystone can be found here  
+https://github.com/capstone-engine  
+and here  
+https://github.com/keystone-engine  
 Their build processes are straightforward to follow. As an example, to develop
 clad I cloned both repos in my ~/repos folder:
 ```
