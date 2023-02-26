@@ -95,6 +95,22 @@ static void help_asm(const char * short_name, const char * long_name)
 	printf(" %s, %-17s - set assembly mode\n", short_name, long_name);
 }
 
+// --asm-max-instr|-i
+static const char asm_max_instr_opt_short = 'i';
+static const char asm_max_instr_opt_long[] = "asm-max-instr";
+static void handle_asm_max_instr(const char * opt, char * opt_arg, void * ctx)
+{
+	prog_options * options = (prog_options *)ctx;
+	if (sscanf(opt_arg, "%zu", &(options->asm_max_instr)) != 1)
+		err_quit("option '%s': '%s' not a valid unsigned number", opt, opt_arg);
+}
+
+static void help_asm_max_instr(const char * short_name, const char * long_name)
+{
+	printf(" %s, %-17s - set the max length of one instruction; default is %zu\n",
+		short_name, long_name, (size_t)(ASM_MAX_INSTR_DEFAULT-1));
+}
+
 // --asm-opt|-\0
 static const char asm_opt_opt_short = '\0';
 static const char asm_opt_opt_long[] = "asm-opt";
@@ -232,17 +248,21 @@ static void help_addr(const char * short_name, const char * long_name)
 	printf(" %s, %-17s - specify a start address\n", short_name, long_name);
 }
 
-// --limits|-\0
-static const char limits_opt_short = '\0';
-static const char limits_opt_long[] = "limits";
-static void handle_limits(const char * opt, char * opt_arg, void * ctx)
+// --coalesce-input|-c
+static const char coalesce_input_opt_short = 'c';
+static const char coalesce_input_opt_long[] = "coalesce-input";
+static void handle_coalesce_input(const char * opt, char * opt_arg, void * ctx)
 {
-	print_static_limits_quit();
+	prog_options * options = (prog_options *)ctx;
+	options->coalesce_input = true;
 }
 
-static void help_limits(const char * short_name, const char * long_name)
+static void help_coalesce_input(const char * short_name, const char * long_name)
 {
-	printf("     %-17s - print static limits and exit\n", long_name);
+	printf(" %s, %-17s - read all inputs in a single string; behaves as if there\n",
+		short_name, long_name);
+	printf(" %-2s  %-17s   is a delimiter at the end of each input\n",
+		" ", " ");
 }
 
 // --version|-\0
@@ -284,6 +304,7 @@ puts("and the last one seen is applied.");
 puts("");
 puts("Options:");
 opts_print_help((opts_table *)ctx);
+exit(EXIT_SUCCESS);
 }
 
 static void help_help(const char * short_name, const char * long_name)

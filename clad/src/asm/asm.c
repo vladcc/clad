@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+//#include <stdlib.h>
 
 #include "asm.h"
 #include "err/err.h"
@@ -18,11 +19,13 @@
 
 static struct {
 	ks_engine * handle;
-	size_t curr_addr;
 	ks_arch arch;
 	ks_mode mode;
 	ks_opt_value syntax;
+	size_t curr_addr;
 	size_t asm_calls;
+	char * one_instr_buff;
+	size_t oib_len;
 } module;
 
 typedef struct arch_descr {
@@ -145,13 +148,19 @@ void asm_init(
 	const char * arch,
 	const char * mode,
 	const char * syntax,
-	size_t start_addr
+	size_t start_addr,
+	size_t max_single_instr_len
 )
 {
 	module.asm_calls = 0;
 	module.arch = (arch) ? get_arch(arch) : KS_ARCH_X86;	
 	module.mode = (mode) ? get_mode(mode) : KS_MODE_64;
 	module.syntax = (syntax) ? get_syntax(syntax) : KS_OPT_SYNTAX_INTEL;
+	
+	module.oib_len = max_single_instr_len;
+	module.one_instr_buff = (char *)calloc(1, module.oib_len);
+	if (!module.one_instr_buff)
+		ASM_ERR_QUIT("calloc(1, %zu) failed in asm_init()", module.oib_len);
 	
 	if (!ks_arch_supported(module.arch))
 		KEYSTONE_ERR_QUIT("architecture '%s' not available", arch); 
@@ -170,12 +179,7 @@ void asm_init(
 	}
 }
 
-void asm_asm(
-	FILE * where,
-	const char * asm_str,
-	char * one_instr_buff,
-	size_t oib_size
-)
+void asm_asm(FILE * where, const char * asm_str)
 {
 	++module.asm_calls;
 	
@@ -185,20 +189,18 @@ void asm_asm(
 	const char * err = NULL;
 	const char * pinstr = asm_str;
 	unsigned char * encode = NULL;
-	while ((pinstr = asm_instr_next(pinstr, one_instr_buff, oib_size, &err)))
+	while ((pinstr = asm_instr_next(pinstr,
+		module.one_instr_buff, module.oib_len, &err)))
 	{
-		if (err)
-			ASM_ERR_QUIT(STR_ERR(err));
-		
-		++instr_num;	
+		++instr_num;
 		if (KS_ERR_OK == ks_asm(module.handle,
-			one_instr_buff, module.curr_addr, &encode,
+			module.one_instr_buff, module.curr_addr, &encode,
 				&out_size, &out_count))
 		{
 			fprintf(where, "0x%04jx | ", module.curr_addr);
 			for (size_t i = 0; i < out_size; ++i)
 				fprintf(where, "%02x ", encode[i]);
-			fprintf(where, "| %s\n", one_instr_buff);
+			fprintf(where, "| %s\n", module.one_instr_buff);
 			module.curr_addr += out_size;
 
 			ks_free(encode);
@@ -208,14 +210,18 @@ void asm_asm(
 			ASM_ERR_PRINT("bad instruction syntax");
 				
 			err_out("string %d: '%s'\n", module.asm_calls, asm_str);
-			err_out("instruction %d: '%s'\n", instr_num, one_instr_buff);
+			err_out("instruction %d: '%s'\n", instr_num, module.one_instr_buff);
 			
 			KEYSTONE_ERR_QUIT(STR_ERR(ks_strerror(ks_errno(module.handle))));
 		}
 	}
+	
+	if (err)
+		ASM_ERR_QUIT("%s; size was %zu", err, module.oib_len);
 }
 
 void asm_close(void)
 {
+	free(module.one_instr_buff);
 	ks_close(module.handle);
 }

@@ -110,6 +110,20 @@ help_code
 end_code
 end
 
+long_name  asm-max-instr
+short_name i
+takes_args true
+handler_code
+	prog_options * options = (prog_options *)ctx;
+	if (sscanf(opt_arg, "%zu", &(options->asm_max_instr)) != 1)
+		err_quit("option '%s': '%s' not a valid unsigned number", opt, opt_arg);
+end_code
+help_code
+	printf(" %s, %-17s - set the max length of one instruction; default is %zu\n",
+		short_name, long_name, (size_t)(ASM_MAX_INSTR_DEFAULT-1));
+end_code
+end
+
 long_name  asm-opt
 short_name \0
 takes_args false
@@ -231,14 +245,18 @@ help_code
 end_code
 end
 
-long_name  limits
-short_name \0
+long_name  coalesce-input
+short_name c
 takes_args false
 handler_code
-	print_static_limits_quit();
+	prog_options * options = (prog_options *)ctx;
+	options->coalesce_input = true;
 end_code
 help_code
-	printf("     %-17s - print static limits and exit\n", long_name);
+	printf(" %s, %-17s - read all inputs in a single string; behaves as if there\n",
+		short_name, long_name);
+	printf(" %-2s  %-17s   is a delimiter at the end of each input\n",
+		" ", " ");
 end_code
 end
 
@@ -278,6 +296,7 @@ puts("and the last one seen is applied.");
 puts("");
 puts("Options:");
 opts_print_help((opts_table *)ctx);
+exit(EXIT_SUCCESS);
 end_code
 help_code
 	printf(" %s, %-17s - print this screen\n", short_name, long_name);

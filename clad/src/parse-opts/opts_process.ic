@@ -51,6 +51,18 @@ opts_entry all_entries[] = {
 	},
 	{
 		.names = {
+			.long_name = asm_max_instr_opt_long,
+			.short_name = asm_max_instr_opt_short
+		},
+		.handler = {
+			.handler = handle_asm_max_instr,
+			.context = (void *)ctx,
+		},
+		.print_help = help_asm_max_instr,
+		.takes_arg = true,
+	},
+	{
+		.names = {
 			.long_name = asm_opt_opt_long,
 			.short_name = asm_opt_opt_short
 		},
@@ -147,14 +159,14 @@ opts_entry all_entries[] = {
 	},
 	{
 		.names = {
-			.long_name = limits_opt_long,
-			.short_name = limits_opt_short
+			.long_name = coalesce_input_opt_long,
+			.short_name = coalesce_input_opt_short
 		},
 		.handler = {
-			.handler = handle_limits,
+			.handler = handle_coalesce_input,
 			.context = (void *)ctx,
 		},
-		.print_help = help_limits,
+		.print_help = help_coalesce_input,
 		.takes_arg = false,
 	},
 	{

@@ -62,7 +62,7 @@ $ clad '!83 !f0 04 04 90' | column -s'|' -t
 ### Single byte instructions amd64
 Here's how you can generate all valid single byte amd64 instructions:
 ```
-$ echo {0..255} | tr ' ' '\n' | xargs -L1 printf "%02x\n" | xargs -L 1 clad -A x86 -M 64 2>&1 | grep '^0x0000' 
+$ seq 0 255 | awk -vArch=x86 -vMode=64 '{print sprintf("clad -A %s -M %s %02x 2>/dev/null", Arch, Mode, $0)}' | bash
 0x0000 | 50 | push rax
 0x0000 | 51 | push rcx
 0x0000 | 52 | push rdx
@@ -131,7 +131,7 @@ $ echo {0..255} | tr ' ' '\n' | xargs -L1 printf "%02x\n" | xargs -L 1 clad -A x
 This is how you can see which single byte instructions are common to x86 and
 amd64, and how many there are:
 ```
-$ comm -12 <(echo {0..255} | tr ' ' '\n' | xargs -L1 printf "%02x\n" | xargs -L 1 clad -A x86 -M 64 2>&1 | grep '^0x0000' | sort) <(echo {0..255} | tr ' ' '\n' | xargs -L1 printf "%02x\n" | xargs -L 1 clad -A x86 -M 32 2>&1 | grep '^0x0000' | sort) | cat -n
+$ comm -12 <(seq 0 255 | awk -vArch=x86 -vMode=64 '{print sprintf("clad -A %s -M %s %02x 2>/dev/null", Arch, Mode, $0)}' | bash) <(seq 0 255 | awk -vArch=x86 -vMode=32 '{print sprintf("clad -A %s -M %s %02x 2>/dev/null", Arch, Mode, $0)}' | bash) | cat -n
      1  0x0000 | 90 | nop 
      2  0x0000 | 91 | xchg eax, ecx
      3  0x0000 | 92 | xchg eax, edx
@@ -173,7 +173,7 @@ jmp <dword>, call <dword>, push <dword>
 ```
 etc. in amd64:
 ```
-$ seq 0 255 | awk '{print sprintf("\"%02x 00 00 00 00\"", $0)}' | xargs -L1 clad 2>&1 | grep '^0x0000' | awk -F ' \\| ' '{a=$2; if (4 == gsub(" ", " ", a)) print $0}' | cat -n
+$ seq 0 255 | awk -vArch=x86 -vMode=64 '{print sprintf("clad -A %s -M %s \"%02x 00 00 00 00\" 2>/dev/null", Arch, Mode, $0)}' | bash | awk -F ' \\| ' '{a=$2; if (4 == gsub(" ", " ", a)) print $0}' | cat -n
      1  0x0000 | 05 00 00 00 00 | add eax, 0
      2  0x0000 | 0d 00 00 00 00 | or eax, 0
      3  0x0000 | 15 00 00 00 00 | adc eax, 0
@@ -197,11 +197,68 @@ $ seq 0 255 | awk '{print sprintf("\"%02x 00 00 00 00\"", $0)}' | xargs -L1 clad
 ```
 All which are in 32 bit x86 but not in 64 bit:
 ```
-$ comm -13 <(seq 0 255 | awk '{print sprintf("\"%02x 00 00 00 00\"", $0)}' | xargs -L1 clad -A x86 -M 64 2>&1 | grep '^0x0000' | awk -F ' \\| ' '{a=$2; if (4 == gsub(" ", " ", a)) print $0}' | sort) <(seq 0 255 | awk '{print sprintf("\"%02x 00 00 00 00\"", $0)}' | xargs -L1 clad -A x86 -M 32 2>&1 | grep '^0x0000' | awk -F ' \\| ' '{a=$2; if (4 == gsub(" ", " ", a)) print $0}' | sort) | cat -n
+$ comm -13 <(seq 0 255 | awk -vArch=x86 -vMode=64 '{print sprintf("clad -A %s -M %s \"%02x 00 00 00 00\" 2>/dev/null", Arch, Mode, $0)}' | bash | awk -F ' \\| ' '{a=$2; if (4 == gsub(" ", " ", a)) print $0}' | sort) <(seq 0 255 | awk -vArch=x86 -vMode=32 '{print sprintf("clad -A %s -M %s \"%02x 00 00 00 00\" 2>/dev/null", Arch, Mode, $0)}' | bash | awk -F ' \\| ' '{a=$2; if (4 == gsub(" ", " ", a)) print $0}' | sort) | cat -n
      1  0x0000 | a0 00 00 00 00 | mov al, byte ptr [0]
      2  0x0000 | a1 00 00 00 00 | mov eax, dword ptr [0]
      3  0x0000 | a2 00 00 00 00 | mov byte ptr [0], al
      4  0x0000 | a3 00 00 00 00 | mov dword ptr [0], eax
+```
+
+### Coalescing input
+Coalescing the input means that all strings and files are read into a single
+string and processed at once. This is useful mostly for disassembly. E.g. here
+clad reads one stream of bytes - a single string:
+```
+$ clad '83 f0 04 04 90' 
+0x0000 | 83 f0 04 | xor eax, 4
+0x0003 | 04 90 | add al, 0x90
+```
+Here's it's four streams - a string, a file, and two strings:
+```
+$ clad '83 f0' -f <(echo 04) 04 90 
+clad: error: disasm: invalid instruction at address 0x0000 in string 1
+83 f0
+^
+```
+This fails because '83 0f' is not a legal instruction. Coalescing joins all
+input streams together:
+```
+$ clad -c '83 f0' -f <(echo 04) 04 90 
+0x0000 | 83 f0 04 | xor eax, 4
+0x0003 | 04 90 | add al, 0x90
+```
+When used with assembly, there's a difference only when there's an error:
+```
+$ clad -a 'push rbp' -f <(echo 'mov rbp, rsp; mov eax, 0x0f00') 'pop rbp' ret | column -s '|' -t
+0x0000    55                push rbp
+0x0001    48 89 e5          mov rbp, rsp
+0x0004    b8 00 0f 00 00    mov eax, 0x0f00
+0x0009    5d                pop rbp
+0x000a    c3                ret
+
+$ clad -c -a 'push rbp' -f <(echo 'mov rbp, rsp; mov eax, 0x0f00') 'pop rbp' ret | column -s '|' -t
+0x0000    55                push rbp
+0x0001    48 89 e5          mov rbp, rsp
+0x0004    b8 00 0f 00 00    mov eax, 0x0f00
+0x0009    5d                pop rbp
+0x000a    c3                ret
+```
+```
+$ clad -a 'push rbp' -f <(echo 'mov rbp, rsp; move eax, 0x0f00') 'pop rbp' ret | column -s '|' -t
+clad: error: asm: bad instruction syntax
+string 2: 'mov rbp, rsp; move eax, 0x0f00'
+instruction 2: 'move eax, 0x0f00'
+clad: error: Keystone: Invalid mnemonic (KS_ERR_ASM_MNEMONICFAIL)
+0x0000    55          push rbp
+0x0001    48 89 e5    mov rbp, rsp
+
+$ clad -c -a 'push rbp' -f <(echo 'mov rbp, rsp; move eax, 0x0f00') 'pop rbp' ret | column -s '|' -t
+clad: error: asm: bad instruction syntax
+string 1: 'push rbp;mov rbp, rsp; move eax, 0x0f00;pop rbp;ret;'
+instruction 3: 'move eax, 0x0f00'
+clad: error: Keystone: Invalid mnemonic (KS_ERR_ASM_MNEMONICFAIL)
+0x0000    55          push rbp
+0x0001    48 89 e5    mov rbp, rsp
 ```
 
 ## How it works

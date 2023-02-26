@@ -1,3 +1,9 @@
 2023-02-26
+	clad 1.1
+	bugfix - asm buffer length error didn't report
+	bugfix - exit after printing help
+	static limits removed
+	input coalescing added
+	
 	clad 1.0.1
-	asm memory leak fixed
+	bugfix - asm memory leak
