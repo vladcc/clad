@@ -22,7 +22,6 @@ static struct {
 	ks_arch arch;
 	ks_mode mode;
 	ks_opt_value syntax;
-	unsigned char * encode;
 	size_t asm_calls;
 } module;
 
@@ -185,6 +184,7 @@ void asm_asm(
 	size_t out_size = 0;
 	const char * err = NULL;
 	const char * pinstr = asm_str;
+	unsigned char * encode = NULL;
 	while ((pinstr = asm_instr_next(pinstr, one_instr_buff, oib_size, &err)))
 	{
 		if (err)
@@ -192,14 +192,16 @@ void asm_asm(
 		
 		++instr_num;	
 		if (KS_ERR_OK == ks_asm(module.handle,
-			one_instr_buff, module.curr_addr, &module.encode,
+			one_instr_buff, module.curr_addr, &encode,
 				&out_size, &out_count))
 		{
 			fprintf(where, "0x%04jx | ", module.curr_addr);
 			for (size_t i = 0; i < out_size; ++i)
-				fprintf(where, "%02x ", module.encode[i]);
+				fprintf(where, "%02x ", encode[i]);
 			fprintf(where, "| %s\n", one_instr_buff);
 			module.curr_addr += out_size;
+
+			ks_free(encode);
 		}
 		else
 		{
@@ -215,6 +217,5 @@ void asm_asm(
 
 void asm_close(void)
 {
-	ks_free(module.encode);
 	ks_close(module.handle);
 }

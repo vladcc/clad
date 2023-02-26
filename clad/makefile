@@ -56,7 +56,7 @@ EXTERN_LIB := $(LIB_CAPSTONE_A) $(LIB_KEYSTONE_A)
 clad: $(MAIN_BIN)
 
 $(MAIN_BIN): $(MAIN_O) $(PARSE_OPTS_O) $(ERR_O) $(DISASM_O) $(H2B_O) $(ASM_O) $(ASMSPLIT_O)
-	$(CMPL) $^ -o $@ $(EXTERN_LIB) $(LOCAL_INCL) $(CFLAGS)
+	$(CMPL) $^ -o $@ $(EXTERN_LIB) $(CFLAGS)
 
 $(MAIN_O): $(SRC_DIR)/main.c $(PARSE_OPTS_DEFN)
 	$(CMPL) -c $< -o $@ $(LOCAL_INCL) $(CFLAGS)
