@@ -15,7 +15,7 @@
 
 // <prog-info>
 static const char prog_name[] = "clad";
-static const char prog_version[] = "1.1";
+static const char prog_version[] = "1.1.1";
 
 static void print_usage_quit(void)
 {

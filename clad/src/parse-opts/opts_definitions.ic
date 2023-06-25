@@ -239,7 +239,7 @@ static const char addr_opt_long[] = "addr";
 static void handle_addr(const char * opt, char * opt_arg, void * ctx)
 {
 	prog_options * options = (prog_options *)ctx;
-	if (sscanf(opt_arg, "%jx", &(options->addr)) != 1)
+	if (sscanf(opt_arg, "%zx", &(options->addr)) != 1)
 		err_quit("option '%s': '%s' not a hex number", opt, opt_arg);
 }
 

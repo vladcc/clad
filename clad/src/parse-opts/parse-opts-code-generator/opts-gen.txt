@@ -237,7 +237,7 @@ short_name x
 takes_args true
 handler_code
 	prog_options * options = (prog_options *)ctx;
-	if (sscanf(opt_arg, "%jx", &(options->addr)) != 1)
+	if (sscanf(opt_arg, "%zx", &(options->addr)) != 1)
 		err_quit("option '%s': '%s' not a hex number", opt, opt_arg);
 end_code
 help_code
