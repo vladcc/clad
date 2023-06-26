@@ -15,7 +15,7 @@
 
 // <prog-info>
 static const char prog_name[] = "clad";
-static const char prog_version[] = "1.1.1";
+static const char prog_version[] = "1.1.2";
 
 static void print_usage_quit(void)
 {
@@ -72,7 +72,11 @@ typedef struct prog_options {
 	bool coalesce_input;
 } prog_options;
 
-static prog_options g_options;
+static inline prog_options * prog_opts_get(void)
+{
+	static prog_options opts;
+	return &opts;
+}
 
 static void save_string(const char * str, void * ctx)
 {
@@ -222,7 +226,9 @@ static void run(prog_options * opts)
 int main(int argc, char * argv[])
 {
 	err_set_prog_name(prog_name);
-	opts_process(argc, argv, &g_options);
-	run(&g_options);
+
+	prog_options * opts = prog_opts_get();
+	opts_process(argc, argv, opts);
+	run(opts);
 	return 0;
 }
