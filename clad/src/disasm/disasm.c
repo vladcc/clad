@@ -3,7 +3,11 @@
 
 #include "disasm.h"
 #include "err/err.h"
+
+#define CAPSTONE_SYSTEMZ_COMPAT_HEADER
+#define CAPSTONE_AARCH64_COMPAT_HEADER
 #include "capstone/capstone.h"
+
 #include "hex2bytes/hex2bytes.h"
 
 #define STR_ERR(str) "%s", (str)
@@ -113,7 +117,7 @@ for (size_t i = 0; i < ARR_SIZE(cs_ ## id ## s); ++i)                          \
 	DISASM_PRINT_OPTS_LOOP("Disassembly architectures possible:", arch);
 	DISASM_PRINT_OPTS_LOOP("Disassembly modes:", mode);
 	DISASM_PRINT_OPTS_LOOP("Disassembly syntaxes:", sntx);
-	
+
 	puts("");
 	disasm_print_arch();
 #undef DISASM_PRINT_OPTS_LOOP
@@ -167,26 +171,26 @@ void disasm_init(
 )
 {
 	module.disasm_calls = 0;
-	module.arch = (arch) ? get_arch(arch) : CS_ARCH_X86;	
+	module.arch = (arch) ? get_arch(arch) : CS_ARCH_X86;
 	module.mode = (mode) ? get_mode(mode) : CS_MODE_64;
 	module.syntax = (syntax) ? get_syntax(syntax) : CS_OPT_SYNTAX_DEFAULT;
-	
+
 	if (!cs_support(module.arch))
-		CAPSTONE_ERR_QUIT("architecture: not compiled with '%s'", arch); 
-	
+		CAPSTONE_ERR_QUIT("architecture: not compiled with '%s'", arch);
+
 	module.curr_addr = start_addr;
-	
+
 	cs_err err = cs_open(module.arch, module.mode, &module.handle);
 	if (err != CS_ERR_OK)
 		CAPSTONE_ERR_QUIT(STR_ERR(cs_strerror(err)));
-	
+
 	if (syntax)
 	{
 		err = cs_option(module.handle, CS_OPT_SYNTAX, module.syntax);
 		if (err != CS_ERR_OK)
 			CAPSTONE_ERR_QUIT("syntax: %s", cs_strerror(err));
 	}
-	
+
 	module.inst = cs_malloc(module.handle);
 	if (!module.inst)
 		CAPSTONE_ERR_QUIT("couldn't allocate memory");
@@ -195,11 +199,11 @@ void disasm_init(
 void disasm_disasm(FILE * where, const char * hex)
 {
 	++module.disasm_calls;
-	
+
 	size_t buff_len = 0;
 	const char * h2b_err = NULL;
 	size_t * ind_map = NULL;
-	
+
 	byte * buff = hex2bytes(hex, &buff_len, &ind_map, &h2b_err);
 	if (!buff)
 	{
@@ -207,32 +211,32 @@ void disasm_disasm(FILE * where, const char * hex)
 		err_out("string: '%s'\n", hex);
 		err_exit();
 	}
-		
+
 	const byte * cbuff = buff;
 	size_t cbuff_len = buff_len;
 	size_t start_addr = module.curr_addr;
-	
+
 	cs_insn * inst = module.inst;
 	while (cs_disasm_iter(module.handle,
 		&cbuff, &cbuff_len, &module.curr_addr, inst))
 	{
 		fprintf(where, "0x%04jx | ", inst->address);
-		
+
 		for (size_t j = 0; j < inst->size; ++j)
 			fprintf(where, "%02x ", inst->bytes[j]);
-		
+
 		fprintf(where, "| %s %s\n", inst->mnemonic, inst->op_str);
 	}
-	
+
 	cs_err err = cs_errno(module.handle);
 	if (err != CS_ERR_OK)
 		CAPSTONE_ERR_QUIT(STR_ERR(cs_strerror(err)));
-	
+
 	if (module.curr_addr < (start_addr + buff_len))
 	{
 		DISASM_ERR_PRINT("invalid instruction at address 0x%04jx in string %zu",
 			module.curr_addr, module.disasm_calls);
-			
+
 		err_out("%s\n", hex);
 
 		char ch = 0;
@@ -242,13 +246,13 @@ void disasm_disasm(FILE * where, const char * hex)
 			ch = hex[i];
 			if (!isspace(ch))
 				ch = ' ';
-				
+
 			err_out("%c", ch);
 		}
 		err_out("%c\n", '^');
 		err_exit();
 	}
-	
+
 	free(ind_map);
 	free(buff);
 }

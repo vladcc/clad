@@ -1,3 +1,6 @@
+2025-07-10
+	added capstone compat headers
+
 2023-06-26
 	clad 1.1.2
 	prog options now reachable only through a function call
@@ -12,6 +15,6 @@
 	bugfix - exit after printing help
 	static limits removed
 	input coalescing added
-	
+
 	clad 1.0.1
 	bugfix - asm memory leak
