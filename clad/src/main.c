@@ -15,7 +15,7 @@
 
 // <prog-info>
 static const char prog_name[] = "clad";
-static const char prog_version[] = "1.1.2";
+static const char prog_version[] = "1.1.3";
 
 static void print_usage_quit(void)
 {
@@ -24,25 +24,25 @@ static void print_usage_quit(void)
 	exit(EXIT_FAILURE);
 }
 static void print_version_quit(void)
-{	
+{
 	printf("%-8s %s\n", prog_name, prog_version);
 
 	{
 		int major = 0;
 		int minor = 0;
-	
+
 		disasm_get_cs_version(&major, &minor);
 		printf("Capstone %d.%d\n", major, minor);
 	}
-	
+
 	{
 		unsigned int major = 0;
 		unsigned int minor = 0;
-	
+
 		asm_get_ks_version(&major, &minor);
 		printf("Keystone %d.%d\n", major, minor);
 	}
-	
+
 	exit(EXIT_SUCCESS);
 }
 // </prog-info>
@@ -95,13 +95,13 @@ static void opts_process(int argc, char * argv[], void * ctx)
 {
 	if (argc < 2)
 		print_usage_quit();
-	
+
 	prog_options * opts = (prog_options *)ctx;
-	
+
 	opts->disassemble = true;
 	opts->assemble = false;
 	opts->asm_max_instr = ASM_MAX_INSTR_DEFAULT;
-	
+
 #include "parse-opts/opts_process.ic"
 }
 // </command-line-options>
@@ -130,7 +130,7 @@ static void process_file(prcsr fn, FILE * where, const char * fname)
 {
 	std::ifstream in_file;
 	file_err_quit(in_file, fname);
-	
+
 	std::string line;
 	while (std::getline(in_file, line))
 		fn(where, line.c_str());
@@ -138,7 +138,7 @@ static void process_file(prcsr fn, FILE * where, const char * fname)
 static void input_coalesce(prog_options * opts, std::string& out)
 {
 	out.clear();
-	
+
 	std::vector<input_node>& in = opts->inputs;
 	input_node * node = in.data();
 	for (size_t i = 0, end = in.size(); i < end; ++i, ++node)
@@ -152,12 +152,12 @@ static void input_coalesce(prog_options * opts, std::string& out)
 		{
 			std::ifstream in_file;
 			file_err_quit(in_file, node->str);
-			
+
 			std::string line;
 			while (std::getline(in_file, line))
 				out.append(line);
 		}
-		
+
 		if (opts->disassemble)
 		{
 			out.push_back(' ');

@@ -43,6 +43,7 @@ static const arch_descr ks_archs[] = {
 {"systemz", "SystemZ architecture (S390X)", KS_ARCH_SYSTEMZ},
 {"hexagon", "Hexagon architecture", KS_ARCH_HEXAGON},
 {"evm", "Ethereum Virtual Machine architecture", KS_ARCH_EVM},
+{"riscv", "RISC-V architecture", KS_ARCH_RISCV},
 };
 
 typedef struct mode_descr {
@@ -54,22 +55,24 @@ static const mode_descr ks_modes[] = {
 {"little_endian", "little-endian mode (default mode)", KS_MODE_LITTLE_ENDIAN},
 {"big_endian", "big-endian mode", KS_MODE_BIG_ENDIAN},
 {"arm", "ARM mode", KS_MODE_ARM},
-{"thumb", "ARM THUMB mode (including Thumb-2)", KS_MODE_THUMB},
+{"thumb", "THUMB mode (including Thumb-2)", KS_MODE_THUMB},
 {"v8", "ARMv8 A32 encodings for ARM", KS_MODE_V8},
 {"micro", "MicroMips mode", KS_MODE_MICRO},
 {"mips3", "Mips III ISA", KS_MODE_MIPS3},
 {"mips32r6", "Mips32r6 ISA", KS_MODE_MIPS32R6},
 {"mips32", "Mips32 ISA", KS_MODE_MIPS32},
 {"mips64", "Mips64 ISA", KS_MODE_MIPS64},
-{"16", "x86 16-bit mode", KS_MODE_16},
-{"32", "x86 32-bit mode", KS_MODE_32},
-{"64", "x86 64-bit mode", KS_MODE_64},
-{"ppc32", "PPC 32-bit mode", KS_MODE_PPC32},
-{"ppc64", "PPC 64-bit mode", KS_MODE_PPC64},
-{"qpx", "PPC Quad Processing eXtensions mode", KS_MODE_QPX},
-{"sparc32", "SPARC 32-bit mode", KS_MODE_SPARC32},
-{"sparc64", "SPARC 64-bit mode", KS_MODE_SPARC64},
-{"v9", "SPARC SparcV9 mode", KS_MODE_V9},
+{"16", "16-bit mode", KS_MODE_16},
+{"32", "32-bit mode", KS_MODE_32},
+{"64", "64-bit mode", KS_MODE_64},
+{"ppc32", "32-bit mode", KS_MODE_PPC32},
+{"ppc64", "64-bit mode", KS_MODE_PPC64},
+{"qpx", "Quad Processing eXtensions mode", KS_MODE_QPX},
+{"riscv32", "32-bit mode", KS_MODE_RISCV32},
+{"riscv64", "64-bit mode", KS_MODE_RISCV64},
+{"sparc32", "32-bit mode", KS_MODE_SPARC32},
+{"sparc64", "64-bit mode", KS_MODE_SPARC64},
+{"v9", "SparcV9 mode", KS_MODE_V9}
 };
 
 typedef struct syntax_descr {
@@ -78,12 +81,12 @@ typedef struct syntax_descr {
 	ks_opt_value sntx_id;
 } syntax_descr;
 static const syntax_descr ks_sntxs[] = {
-{"intel", "X86 Intel syntax - default on X86 (KS_OPT_SYNTAX).", KS_OPT_SYNTAX_INTEL},
-{"att", "X86 ATT asm syntax (KS_OPT_SYNTAX).", KS_OPT_SYNTAX_ATT  },
-{"nasm", "X86 Nasm syntax (KS_OPT_SYNTAX).", KS_OPT_SYNTAX_NASM },
-{"masm", "X86 Masm syntax (KS_OPT_SYNTAX) - unsupported yet.", KS_OPT_SYNTAX_MASM },
-{"gas", "X86 GNU GAS syntax (KS_OPT_SYNTAX).", KS_OPT_SYNTAX_GAS  },
-{"radix16", "All immediates are in hex format (i.e 12 is 0x12)", KS_OPT_SYNTAX_RADIX16},
+{"intel", "X86 Intel syntax - default on X86.", KS_OPT_SYNTAX_INTEL},
+{"att", "X86 ATT asm syntax.", KS_OPT_SYNTAX_ATT},
+{"nasm", "X86 Nasm syntax.", KS_OPT_SYNTAX_NASM},
+{"masm", "X86 Masm syntax - unsupported yet.", KS_OPT_SYNTAX_MASM},
+{"gas", "X86 GNU GAS syntax.", KS_OPT_SYNTAX_GAS},
+{"radix16", "All immediates are in hex format (i.e 12 is 0x12)", KS_OPT_SYNTAX_RADIX16}
 };
 
 #define ARCH_FMT "%-13s - %s\n"
@@ -98,7 +101,7 @@ for (size_t i = 0; i < ARR_SIZE(ks_ ## id ## s); ++i)                          \
 	ASM_PRINT_OPTS_LOOP("Assembly architectures possible:", arch);
 	ASM_PRINT_OPTS_LOOP("Assembly modes:", mode);
 	ASM_PRINT_OPTS_LOOP("Assembly syntaxes:", sntx);
-	
+
 	puts("");
 	asm_print_arch();
 #undef ASM_PRINT_OPTS_LOOP
@@ -153,24 +156,24 @@ void asm_init(
 )
 {
 	module.asm_calls = 0;
-	module.arch = (arch) ? get_arch(arch) : KS_ARCH_X86;	
+	module.arch = (arch) ? get_arch(arch) : KS_ARCH_X86;
 	module.mode = (mode) ? get_mode(mode) : KS_MODE_64;
 	module.syntax = (syntax) ? get_syntax(syntax) : KS_OPT_SYNTAX_INTEL;
-	
+
 	module.oib_len = max_single_instr_len;
 	module.one_instr_buff = (char *)calloc(1, module.oib_len);
 	if (!module.one_instr_buff)
 		ASM_ERR_QUIT("calloc(1, %zu) failed in asm_init()", module.oib_len);
-	
+
 	if (!ks_arch_supported(module.arch))
-		KEYSTONE_ERR_QUIT("architecture '%s' not available", arch); 
-	
+		KEYSTONE_ERR_QUIT("architecture '%s' not available", arch);
+
 	module.curr_addr = start_addr;
-	
+
 	ks_err err = ks_open(module.arch, module.mode, &module.handle);
 	if (err != KS_ERR_OK)
 		KEYSTONE_ERR_QUIT(STR_ERR(ks_strerror(err)));
-	
+
 	if (syntax)
 	{
 		err = ks_option(module.handle, KS_OPT_SYNTAX, module.syntax);
@@ -182,7 +185,7 @@ void asm_init(
 void asm_asm(FILE * where, const char * asm_str)
 {
 	++module.asm_calls;
-	
+
 	size_t instr_num = 0;
 	size_t out_count = 0;
 	size_t out_size = 0;
@@ -208,14 +211,14 @@ void asm_asm(FILE * where, const char * asm_str)
 		else
 		{
 			ASM_ERR_PRINT("bad instruction syntax");
-				
+
 			err_out("string %d: '%s'\n", module.asm_calls, asm_str);
 			err_out("instruction %d: '%s'\n", instr_num, module.one_instr_buff);
-			
+
 			KEYSTONE_ERR_QUIT(STR_ERR(ks_strerror(ks_errno(module.handle))));
 		}
 	}
-	
+
 	if (err)
 		ASM_ERR_QUIT("%s; size was %zu", err, module.oib_len);
 }
